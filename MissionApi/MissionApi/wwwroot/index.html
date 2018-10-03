@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Список задании</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+</head>
+<body>
+    <h2>Список задании</h2>
+    <form name="missionForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group">
+            <label for="tegs">Tegs</label>
+            <input class="form-control" name="tegs" />
+        </div>
+        <div class="form-group">
+            <label for="descirption">Description</label>
+            <input class="form-control" name="description" />
+        </div>
+        <div class="form-group">
+            <label for="complate">Complate</label>
+            <input type="checkbox" class="form-control" name="complate" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+            <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+        </div>
+    </form>
+
+    <table class="table table-condensed table-striped table-bordered">
+        <thead><tr><th>Id</th><th>Name</th><th>Tegs</th><th>Description</th><th>Complate</th><th></th></tr></thead>
+        <tbody id="getmission"></tbody>
+    </table>
+    <form name="findForm">
+        <div class="form-group">
+            <label for="search">Search:</label>
+            <input class="form-control" name="search" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead><tr><th>Id</th><th>Name</th><th>Tegs</th><th>Description</th><th>Complate</th><th></th></tr></thead>
+        <tbody id="search"></tbody>
+    </table>
+    <script>
+        // Получение всех пользователей
+        function GetMissions() {
+            $.ajax({
+                url: '/api/missions/get',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (missions) {
+                    var rows = "";
+                    $.each(missions, function (index, mission) {
+                        // добавляем полученные элементы в таблицу
+                        rows += row(mission);
+                    })
+                    $("#getmission").append(rows);
+                }
+            });
+        }
+        // Получение одного пользователя
+        function GetMission(id) {
+            $.ajax({
+                url: '/api/missions/get/' + id,
+                type: 'GET',
+                contentType: "application/json",
+                success: function (mission) {
+                    var form = document.forms["missionForm"];
+                    form.elements["id"].value = mission.id;
+                    form.elements["name"].value = mission.name;
+                    form.elements["tegs"].value = mission.tegs;
+                    form.elements["description"].value = mission.description;
+                    form.elements["complate"].value = mission.complate;
+                }
+            });
+        }
+        function FindMission(search) {
+            $.ajax({
+                url: '/api/missions/getmissions/' + search,
+                method: "GET",
+                contentType: "application/json",
+                success: function (missions) {
+                    var rows = "";
+                    $.each(missions, function (index, mission) {
+                        rows += row(mission);
+                    })
+                    $("#search").append(rows);
+                }
+
+            });
+        }
+        // Добавление пользователя
+        function CreateMission(missionName, missionTegs, missionDescription, missionComplate) {
+            $.ajax({
+                url: "api/missions/post",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    name: missionName,
+                    tegs: missionTegs,
+                    description: missionDescription,
+                    complate: missionComplate
+                }),
+                success: function (mission) {
+                    reset();
+                    $("table tbody").append(row(mission));
+                }
+            })
+        }
+        // Изменение пользователя
+        function EditMission(missionId, missionName, missionTegs, missionDescription, missionComplate) {
+            $.ajax({
+                url: "api/missions/put",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    id: missionId,
+                    name: missionName,
+                    tegs: missionTegs,
+                    description: missionDescription,
+                    complate: missionComplate
+                }),
+                success: function (mission) {
+                    reset();
+                    $("tr[data-rowid='" + mission.id + "']").replaceWith(row(mission));
+                }
+            })
+        }
+
+        // сброс формы
+        function reset() {
+            var form = document.forms["missionForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+
+        // Удаление пользователя
+        function DeleteMission(id) {
+            $.ajax({
+                url: "api/missions/delete/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (mission) {
+                    $("tr[data-rowid='" + mission.id + "']").remove();
+                }
+            })
+        }
+        // создание строки для таблицы
+        var row = function (mission) {
+            return "<tr data-rowid='" + mission.id + "'><td>" + mission.id + "</td>" +
+                "<td>" + mission.name + "</td> <td>" + mission.tegs +
+                "</td> <td>" + mission.description + "</td> <td>" + mission.complate + "</td>" +
+                "<td><a class='editLink' data-id='" + mission.id + "'>Изменить</a> | " +
+                "<a class='removeLink' data-id='" + mission.id + "'>Удалить</a></td></tr>";
+        }
+        // сброс значений формы
+        $("#reset").click(function (e) {
+
+            e.preventDefault();
+            reset();
+        })
+        $("Form").click(function (e) {
+            e.preventDefault;
+            $('#search').empty();
+            var search = this.elements["search"].value;
+            FindMission(search);
+
+        });
+
+        // отправка формы
+        $("Form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var name = this.elements["name"].value;
+            var tegs = this.elements["tegs"].value;
+            var description = this.elements["description"].value;
+            var complate = this.elements["complate"];
+            if (id == 0)
+                CreateMission(name, tegs, description, complate);
+            else
+                EditMission(id, name, tegs, description, complate);
+        });
+
+        // нажимаем на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetMission(id);
+        })
+        // нажимаем на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteMission(id);
+        })
+
+        // загрузка пользователей
+        FindMission(search);
+               GetMissions();
+
+    </script>
+</body>
+</html>
